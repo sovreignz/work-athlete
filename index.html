@@ -64,7 +64,6 @@
     padding: 1rem;
     margin-bottom: 1rem;
     background: #fff;
-    page-break-inside: avoid;
   }
 
   .set-header { display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
@@ -106,7 +105,7 @@
     border-radius: 6px;
   }
 
-  /* Daily Summary Table */
+  /* Summary Table */
   #summaryTable {
     width: 100%;
     border-collapse: collapse;
@@ -125,14 +124,7 @@
   }
 
   @media print {
-    body { margin: 0; }
-    header, .bottom-actions, #resetBtn { display: none !important; }
-    main { padding: 0.5rem; }
-    #exportArea {
-      margin-top: 0 !important;
-      padding-top: 0 !important;
-    }
-    .set { page-break-inside: avoid; margin-bottom: 0.8rem; }
+    header, .bottom-actions, #setsContainer { display: none !important; }
   }
 </style>
 </head>
@@ -144,17 +136,15 @@
 </header>
 
 <main>
-  <div id="exportArea">
-    <div class="summary" id="summary"></div>
-    <table id="summaryTable"></table>
-    <div id="setsContainer"></div>
-  </div>
+  <div class="summary" id="summary"></div>
+  <table id="summaryTable"></table>
+  <div id="setsContainer"></div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <script>
 (function () {
-  const MAX_DURATION = 30 * 60; // 30 minutes
+  const MAX_DURATION = 30 * 60; 
   const todayKey = getTodayKey();
   const storageKey = 'wa-' + todayKey;
 
@@ -162,7 +152,6 @@
   const resetBtn = document.getElementById('resetBtn');
   const summaryEl = document.getElementById('summary');
   const summaryTable = document.getElementById('summaryTable');
-  const exportArea = document.getElementById('exportArea');
 
   let state = loadDay() || defaultState();
   const intervals = new Map();
@@ -240,14 +229,12 @@
       <div class="set-time">${new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
     wrap.appendChild(header);
 
-    // Goal
     const goalBox = document.createElement('textarea');
     goalBox.placeholder = 'Set Goal / Intention';
     goalBox.value = s.goal;
     goalBox.oninput = () => { s.goal = goalBox.value; saveDay(); updateSummaryTable(); };
     wrap.appendChild(goalBox);
 
-    // Timer
     const timerWrap = document.createElement('div');
     timerWrap.className = 'timer';
     const display = document.createElement('span');
@@ -275,7 +262,6 @@
     timerWrap.append(display, startBtn, pauseBtn, resetBtn);
     wrap.append(timerWrap, elapsedLine);
 
-    // Checks
     const checks = document.createElement('div');
     checks.className = 'checks';
     const workCb = document.createElement('input');
@@ -291,7 +277,6 @@
     checks.append(wLabel, woLabel);
     wrap.appendChild(checks);
 
-    // Notes
     const notes = document.createElement('textarea');
     notes.placeholder = 'Notes / What I Did';
     notes.value = s.notes;
@@ -312,52 +297,33 @@
     addBtn.onclick = () => { state.sets.push(newSet()); saveDay(); renderAll(); updateSummary(); };
     const exportBtn = document.createElement('button');
     exportBtn.textContent = 'Export Day (PDF)';
-    exportBtn.onclick = exportToPDF;
+    exportBtn.onclick = exportSummaryPDF;
     bottom.append(addBtn, exportBtn);
     setsContainer.appendChild(bottom);
   }
 
-  function exportToPDF() {
+  function exportSummaryPDF() {
     updateSummaryTable();
-
-    const clone = exportArea.cloneNode(true);
-    clone.style.margin = '0';
-    clone.style.padding = '10px';
-    clone.style.width = '794px'; // A4 page width in pixels
-
-    // Convert textareas to divs
-    clone.querySelectorAll('textarea').forEach(t => {
-      const div = document.createElement('div');
-      div.style.whiteSpace = 'pre-wrap';
-      div.style.border = '1px solid #ccc';
-      div.style.padding = '0.6rem';
-      div.style.borderRadius = '8px';
-      div.style.fontSize = '0.95rem';
-      div.style.fontFamily = 'inherit';
-      div.style.minHeight = '40px';
-      div.textContent = t.value;
-      t.replaceWith(div);
-    });
+    const element = summaryTable.cloneNode(true);
 
     const opt = {
       margin: 10,
-      filename: `WA-${todayKey}.pdf`,
+      filename: `WA-${todayKey}-Summary.pdf`,
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'avoid-all'] }
+      jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().from(clone).set(opt).toPdf().get('pdf').then(pdf => {
+    html2pdf().from(element).set(opt).toPdf().get('pdf').then(pdf => {
       const pageCount = pdf.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         pdf.setPage(i);
         pdf.setFontSize(10);
-        pdf.text(`Page ${i} of ${pageCount}`, 740, 1110);
+        pdf.text(`Page ${i} of ${pageCount}`, 500, 820);
       }
     }).save();
   }
 
-  // Timer logic
+  // Timer Logic
   function startTimer(s, display, elapsedLine, startBtn, pauseBtn) {
     s.timer.running = true;
     s.timer.startedAt = new Date().toISOString();
