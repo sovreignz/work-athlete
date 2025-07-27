@@ -58,7 +58,7 @@
     margin: 1.2rem 0 2rem;
   }
 
-  button, .btn {
+  button {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: #fff;
@@ -69,7 +69,7 @@
     box-shadow: var(--shadow);
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
-  button:hover, .btn:hover {
+  button:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 28px rgba(0,0,0,.08);
     border-color: var(--accent);
@@ -79,9 +79,6 @@
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
-  }
-  button.primary:hover {
-    box-shadow: 0 8px 28px rgba(143,77,204,0.25);
   }
 
   button.outline-danger {
@@ -151,13 +148,14 @@
 
   textarea {
     width: 100%;
-    min-height: 90px;
+    min-height: 60px;
     resize: vertical;
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 0.6rem 0.75rem;
     font-family: var(--sans);
     font-size: 0.95rem;
+    margin-bottom: 0.8rem;
   }
   textarea:focus {
     outline: none;
@@ -171,6 +169,12 @@
     border-left: 4px solid var(--accent-2);
     background: #f7fffe;
     border-radius: 6px;
+  }
+
+  .bottom-actions {
+    margin: 1.2rem 0;
+    display: flex;
+    gap: .6rem;
   }
 
   details.manifesto {
@@ -206,16 +210,12 @@
 <header>
   <h1>Work Athlete Dashboard</h1>
   <div class="date" id="todayStr"></div>
+  <div class="actions">
+    <button id="resetBtn" class="outline-danger">Reset Today</button>
+  </div>
 </header>
 
 <main>
-  <div class="actions">
-    <button class="primary" id="addSetBtn">+ Add Set</button>
-    <button id="exportBtn">Export Day (PDF)</button>
-    <button id="resetBtn" class="outline-danger">Reset Today</button>
-  </div>
-
-  <!-- Everything we want in the PDF lives inside exportArea -->
   <div id="exportArea">
     <div class="summary" id="summary"></div>
     <div id="setsContainer"></div>
@@ -224,12 +224,13 @@
   <details class="manifesto" id="motivation">
     <summary>Why this system works (Work Athlete Manifesto)</summary>
     <div class="content">
-      <h2 style="margin-top:0">The Work Athlete Manifesto</h2>
+      <!-- Manifesto content -->
+      <h2>The Work Athlete Manifesto</h2>
       <p><strong>Sets build strength. Systems build empires.</strong></p>
       <ol>
         <li><strong>Reps Create Results</strong> — Every 30-minute sprint is a rep for your future self.</li>
         <li><strong>Sets Create Systems</strong> — One set moves the ball. Three sets make a session. Four sessions a day builds the machine.</li>
-        <li><strong>Momentum &gt; Motivation</strong> — Start the clock, do the work. The set creates the energy, not the other way around.</li>
+        <li><strong>Momentum > Motivation</strong> — Start the clock, do the work. The set creates the energy, not the other way around.</li>
         <li><strong>Time, Not Tasks</strong> — Tasks are unpredictable; 30-minute blocks are guaranteed progress.</li>
         <li><strong>Recovery Is Growth</strong> — 5 minutes of movement post-set resets your nervous system and sharpens the next block.</li>
         <li><strong>Fitness + Focus = One Loop</strong> — Work + Workout form a closed, self-reinforcing cycle.</li>
@@ -238,347 +239,241 @@
         <li><strong>Consistency Destroys Resistance</strong> — Even on bad days, one set keeps the system alive.</li>
         <li><strong>You Are the Machine</strong> — Refine the loop, refine yourself.</li>
       </ol>
-      <p><em>Tagline:</em> <strong>“Reps build strength. Sets build systems. Systems build legacies.”</strong></p>
     </div>
   </details>
 </main>
 
-<!-- html2pdf for client-side PDF download -->
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
-
 <script>
 (function () {
-  const DEFAULT_DURATION = 30 * 60; // 30 minutes in seconds
-
+  const MAX_DURATION = 30 * 60; // 30 minutes in seconds
   const todayKey = getTodayKey();
   const storageKey = 'wa-' + todayKey;
 
   const setsContainer = document.getElementById('setsContainer');
-  const addSetBtn = document.getElementById('addSetBtn');
-  const exportBtn = document.getElementById('exportBtn');
   const resetBtn = document.getElementById('resetBtn');
-  const todayStr = document.getElementById('todayStr');
   const summaryEl = document.getElementById('summary');
   const exportArea = document.getElementById('exportArea');
 
-  todayStr.textContent = new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
   let state = loadDay() || defaultState();
-  const intervals = new Map(); // set.id -> interval
+  const intervals = new Map();
 
   renderAll();
   updateSummary();
 
-  // --- Events ---
-  addSetBtn.addEventListener('click', () => {
-    state.sets.push(newSet());
-    saveDay();
-    renderAll();
-    updateSummary();
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-  });
-
-  exportBtn.addEventListener('click', async () => {
-    try {
-      const fileName = `WA-${todayKey}.pdf`;
-      const opt = {
-        margin: 0.4,
-        filename: fileName,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-      await html2pdf().from(exportArea).set(opt).save();
-    } catch (err) {
-      console.error('html2pdf failed, falling back to print()', err);
-      window.print();
+  resetBtn.addEventListener('click', () => {
+    if (confirm('Reset today?')) {
+      state = defaultState();
+      clearAllIntervals();
+      saveDay(true);
+      renderAll();
+      updateSummary();
     }
   });
 
-  resetBtn.addEventListener('click', () => {
-    const ok = confirm('Reset today? This will clear all sets logged for ' + todayKey + '.');
-    if (!ok) return;
-    state = defaultState();
-    clearAllIntervals();
-    saveDay(true);
-    renderAll();
-    updateSummary();
-  });
-
-  // --- Core ---
   function getTodayKey() {
     const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
   function defaultState() {
-    return {
-      date: todayKey,
-      sets: [newSet()]
-    };
+    return { date: todayKey, sets: [newSet()] };
   }
 
   function newSet() {
     return {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random()),
       createdAt: new Date().toISOString(),
       workDone: false,
       workoutDone: false,
+      goal: '',
       notes: '',
-      timer: {
-        duration: DEFAULT_DURATION,
-        remaining: DEFAULT_DURATION,
-        running: false,
-        endAt: null
-      }
+      timer: { elapsed: 0, running: false, startedAt: null }
     };
   }
 
   function loadDay() {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return null;
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return null;
       const parsed = JSON.parse(raw);
-      if (!(parsed && parsed.date === todayKey && Array.isArray(parsed.sets))) return null;
-
-      // Re-sync timers if running
-      const now = Date.now();
+      if (parsed.date !== todayKey) return null;
       parsed.sets.forEach(s => {
-        if (!s.timer) {
-          s.timer = { duration: DEFAULT_DURATION, remaining: DEFAULT_DURATION, running: false, endAt: null };
-          return;
-        }
-        if (s.timer.running && s.timer.endAt) {
-          const remaining = Math.max(0, Math.floor((new Date(s.timer.endAt).getTime() - now) / 1000));
-          s.timer.remaining = remaining;
-          if (remaining <= 0) {
-            s.timer.running = false;
-            s.timer.endAt = null;
-          }
+        if (!s.timer) s.timer = { elapsed: 0, running: false, startedAt: null };
+        if (s.timer.running && s.timer.startedAt) {
+          const diff = Math.floor((Date.now() - new Date(s.timer.startedAt).getTime())/1000);
+          s.timer.elapsed = Math.min(MAX_DURATION, s.timer.elapsed + diff);
+          s.timer.running = s.timer.elapsed < MAX_DURATION;
+          s.timer.startedAt = s.timer.running ? new Date().toISOString() : null;
         }
       });
-
       return parsed;
-    } catch (e) {
-      console.warn('Failed to load day', e);
-      return null;
-    }
+    } catch { return null; }
   }
 
-  function saveDay(clear = false) {
-    try {
-      if (clear) {
-        localStorage.removeItem(storageKey);
-      } else {
-        localStorage.setItem(storageKey, JSON.stringify(state));
-      }
-    } catch (e) {
-      console.warn('Failed to save day', e);
-    }
+  function saveDay(clear=false) {
+    if (clear) localStorage.removeItem(storageKey);
+    else localStorage.setItem(storageKey, JSON.stringify(state));
   }
 
   function renderAll() {
     setsContainer.innerHTML = '';
     clearAllIntervals();
-    state.sets.forEach((s, idx) => {
-      setsContainer.appendChild(renderSet(s, idx));
-    });
+    state.sets.forEach((s, i) => setsContainer.appendChild(renderSet(s, i)));
+    renderBottomActions();
   }
 
   function renderSet(s, index) {
     const wrap = document.createElement('div');
     wrap.className = 'set';
 
-    // header
     const header = document.createElement('div');
     header.className = 'set-header';
+    header.innerHTML = `<div class="set-title">Set ${index + 1}</div>
+      <div class="set-time">${new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
+    wrap.appendChild(header);
 
-    const title = document.createElement('div');
-    title.className = 'set-title';
-    title.textContent = `Set ${index + 1}`;
+    // Goal box
+    const goalBox = document.createElement('textarea');
+    goalBox.placeholder = 'Set Goal / Intention';
+    goalBox.value = s.goal || '';
+    goalBox.addEventListener('input', () => { s.goal = goalBox.value; saveDay(); });
+    wrap.appendChild(goalBox);
 
-    const timestamp = document.createElement('div');
-    timestamp.className = 'set-time';
-    timestamp.textContent = formatTime(s.createdAt);
-
-    header.appendChild(title);
-    header.appendChild(timestamp);
-
-    // timer
+    // Timer
     const timerWrap = document.createElement('div');
     timerWrap.className = 'timer';
-
     const display = document.createElement('span');
     display.className = 'timer-display';
-    display.textContent = formatSeconds(s.timer.remaining);
+    display.textContent = formatTime(s.timer.elapsed);
 
     const startBtn = document.createElement('button');
-    startBtn.textContent = s.timer.running ? 'Running…' : (s.timer.remaining === s.timer.duration ? 'Start' : 'Resume');
+    startBtn.textContent = s.timer.running ? 'Running…' : 'Start';
     startBtn.disabled = s.timer.running;
-    startBtn.addEventListener('click', () => {
-      if (!s.timer.running && s.timer.remaining > 0) {
-        startTimer(s, display, startBtn, pauseBtn);
-      }
-    });
+    startBtn.addEventListener('click', () => startTimer(s, display, startBtn, pauseBtn));
 
     const pauseBtn = document.createElement('button');
     pauseBtn.textContent = 'Pause';
     pauseBtn.disabled = !s.timer.running;
-    pauseBtn.addEventListener('click', () => {
-      pauseTimer(s, display, startBtn, pauseBtn);
-    });
+    pauseBtn.addEventListener('click', () => pauseTimer(s, display, startBtn, pauseBtn));
 
     const resetBtn = document.createElement('button');
-    resetBtn.textContent = 'Reset';
-    resetBtn.addEventListener('click', () => {
-      resetTimer(s, display, startBtn, pauseBtn);
-    });
+    resetBtn.textContent = 'Reset Timer';
+    resetBtn.addEventListener('click', () => resetTimer(s, display, startBtn, pauseBtn));
 
-    timerWrap.appendChild(display);
-    timerWrap.appendChild(startBtn);
-    timerWrap.appendChild(pauseBtn);
-    timerWrap.appendChild(resetBtn);
+    timerWrap.append(display, startBtn, pauseBtn, resetBtn);
+    wrap.appendChild(timerWrap);
 
-    // If running, resume interval
-    if (s.timer.running) {
-      startInterval(s, display, startBtn, pauseBtn);
-      startBtn.disabled = true;
-      startBtn.textContent = 'Running…';
-      pauseBtn.disabled = false;
-    }
-
-    // checks
+    // Checks
     const checks = document.createElement('div');
     checks.className = 'checks';
-
     const workLabel = document.createElement('label');
-    const workCheckbox = document.createElement('input');
-    workCheckbox.type = 'checkbox';
-    workCheckbox.checked = !!s.workDone;
-    workCheckbox.addEventListener('change', () => {
-      s.workDone = workCheckbox.checked;
-      saveDay();
-      updateSummary();
-    });
-    workLabel.appendChild(workCheckbox);
-    workLabel.appendChild(document.createTextNode('30-min Work Complete'));
+    const workCb = document.createElement('input');
+    workCb.type = 'checkbox';
+    workCb.checked = s.workDone;
+    workCb.onchange = () => { s.workDone = workCb.checked; saveDay(); updateSummary(); };
+    workLabel.append(workCb, '30-min Work Complete');
 
     const workoutLabel = document.createElement('label');
-    const workoutCheckbox = document.createElement('input');
-    workoutCheckbox.type = 'checkbox';
-    workoutCheckbox.checked = !!s.workoutDone;
-    workoutCheckbox.addEventListener('change', () => {
-      s.workoutDone = workoutCheckbox.checked;
-      saveDay();
-      updateSummary();
-    });
-    workoutLabel.appendChild(workoutCheckbox);
-    workoutLabel.appendChild(document.createTextNode('Movement / Workout Done'));
+    const workoutCb = document.createElement('input');
+    workoutCb.type = 'checkbox';
+    workoutCb.checked = s.workoutDone;
+    workoutCb.onchange = () => { s.workoutDone = workoutCb.checked; saveDay(); updateSummary(); };
+    workoutLabel.append(workoutCb, 'Movement / Workout Done');
 
-    checks.appendChild(workLabel);
-    checks.appendChild(workoutLabel);
-
-    // notes
-    const notes = document.createElement('textarea');
-    notes.placeholder = 'What did you do in this set?';
-    notes.value = s.notes || '';
-    notes.addEventListener('input', () => {
-      s.notes = notes.value;
-      saveDay();
-    });
-
-    wrap.appendChild(header);
-    wrap.appendChild(timerWrap);
+    checks.append(workLabel, workoutLabel);
     wrap.appendChild(checks);
+
+    // Notes
+    const notes = document.createElement('textarea');
+    notes.placeholder = 'Notes / What I Did';
+    notes.value = s.notes || '';
+    notes.addEventListener('input', () => { s.notes = notes.value; saveDay(); });
     wrap.appendChild(notes);
+
+    // If running, re-enable timer
+    if (s.timer.running) startInterval(s, display, startBtn, pauseBtn);
 
     return wrap;
   }
 
-  // ---- Timer Logic (endAt model) ----
-  function startTimer(s, display, startBtn, pauseBtn) {
-    const now = Date.now();
-    s.timer.running = true;
-    s.timer.endAt = new Date(now + s.timer.remaining * 1000).toISOString();
-    saveDay();
+  function renderBottomActions() {
+    const bottomActions = document.createElement('div');
+    bottomActions.className = 'bottom-actions';
 
+    const addBtn = document.createElement('button');
+    addBtn.className = 'primary';
+    addBtn.textContent = '+ Add Set';
+    addBtn.onclick = () => { state.sets.push(newSet()); saveDay(); renderAll(); updateSummary(); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); };
+
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = 'Export Day (PDF)';
+    exportBtn.onclick = () => {
+      const opt = { margin: 0.4, filename: `WA-${todayKey}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+      html2pdf().from(exportArea).set(opt).save();
+    };
+
+    bottomActions.append(addBtn, exportBtn);
+    setsContainer.appendChild(bottomActions);
+  }
+
+  // --- Timer logic (count up) ---
+  function startTimer(s, display, startBtn, pauseBtn) {
+    s.timer.running = true;
+    s.timer.startedAt = new Date().toISOString();
     startBtn.disabled = true;
     startBtn.textContent = 'Running…';
     pauseBtn.disabled = false;
-
     startInterval(s, display, startBtn, pauseBtn);
+    saveDay();
   }
 
   function pauseTimer(s, display, startBtn, pauseBtn) {
     if (!s.timer.running) return;
-    const remaining = getRemainingFromEndAt(s);
-    s.timer.remaining = remaining;
     s.timer.running = false;
-    s.timer.endAt = null;
+    const diff = Math.floor((Date.now() - new Date(s.timer.startedAt).getTime())/1000);
+    s.timer.elapsed = Math.min(MAX_DURATION, s.timer.elapsed + diff);
+    s.timer.startedAt = null;
     stopInterval(s.id);
-
-    display.textContent = formatSeconds(s.timer.remaining);
+    display.textContent = formatTime(s.timer.elapsed);
     startBtn.disabled = false;
     startBtn.textContent = 'Resume';
     pauseBtn.disabled = true;
-
     saveDay();
   }
 
   function resetTimer(s, display, startBtn, pauseBtn) {
     s.timer.running = false;
-    s.timer.remaining = s.timer.duration;
-    s.timer.endAt = null;
+    s.timer.elapsed = 0;
+    s.timer.startedAt = null;
     stopInterval(s.id);
-
-    display.textContent = formatSeconds(s.timer.remaining);
+    display.textContent = '00:00';
     startBtn.disabled = false;
     startBtn.textContent = 'Start';
     pauseBtn.disabled = true;
-
     saveDay();
   }
 
   function startInterval(s, display, startBtn, pauseBtn) {
     stopInterval(s.id);
-
     const id = setInterval(() => {
-      const remaining = getRemainingFromEndAt(s);
-      s.timer.remaining = remaining;
-
-      if (remaining <= 0) {
-        s.timer.remaining = 0;
+      const diff = Math.floor((Date.now() - new Date(s.timer.startedAt).getTime())/1000);
+      const newElapsed = s.timer.elapsed + diff;
+      if (newElapsed >= MAX_DURATION) {
+        s.timer.elapsed = MAX_DURATION;
         s.timer.running = false;
-        s.timer.endAt = null;
-        display.textContent = '00:00';
+        s.timer.startedAt = null;
+        display.textContent = formatTime(s.timer.elapsed);
+        stopInterval(s.id);
         startBtn.disabled = false;
         startBtn.textContent = 'Restart';
         pauseBtn.disabled = true;
-        stopInterval(s.id);
         saveDay();
         return;
       }
-
-      display.textContent = formatSeconds(remaining);
-      saveDay();
+      display.textContent = formatTime(newElapsed);
     }, 1000);
-
     intervals.set(s.id, id);
-  }
-
-  function getRemainingFromEndAt(s) {
-    if (!s.timer.endAt) return s.timer.remaining;
-    const now = Date.now();
-    const end = new Date(s.timer.endAt).getTime();
-    return Math.max(0, Math.floor((end - now) / 1000));
   }
 
   function stopInterval(id) {
@@ -589,44 +484,27 @@
   }
 
   function clearAllIntervals() {
-    for (const [id, intId] of intervals) {
-      clearInterval(intId);
-    }
+    intervals.forEach(clearInterval);
     intervals.clear();
   }
 
-  // ---- Misc ----
+  // --- Helpers ---
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
   function updateSummary() {
     const total = state.sets.length;
     const workDone = state.sets.filter(s => s.workDone).length;
     const workoutDone = state.sets.filter(s => s.workoutDone).length;
-
-    const hoursFocused = (workDone * 30) / 60;
-    const minsFocused = workDone * 30;
-    const minsMoved = workoutDone * 5; // adjust if you want
-
     summaryEl.innerHTML = `
       <strong>Today’s Tally</strong><br/>
       Sets logged: <strong>${total}</strong><br/>
-      Work sets completed: <strong>${workDone}</strong> (${minsFocused} mins / ${hoursFocused.toFixed(1)} hrs)<br/>
-      Movement sets completed: <strong>${workoutDone}</strong> (${minsMoved} mins est.)<br/>
-      <span class="mono">${storageKey}</span>
+      Work sets completed: <strong>${workDone}</strong><br/>
+      Movement sets completed: <strong>${workoutDone}</strong>
     `;
-  }
-
-  function formatTime(iso) {
-    try {
-      const d = new Date(iso);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function formatSeconds(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 })();
 </script>
