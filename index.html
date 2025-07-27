@@ -105,6 +105,13 @@
     border-radius: 6px;
   }
 
+  /* Date heading above the table */
+  #dateHeading {
+    margin: 0.25rem 0 0.75rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+
   /* Summary Table */
   #summaryTable {
     width: 100%;
@@ -121,10 +128,6 @@
   }
   #summaryTable th {
     background: #f0f0f0;
-  }
-
-  @media print {
-    header, .bottom-actions, #setsContainer { display: none !important; }
   }
 
   /* Hidden PDF export container */
@@ -146,6 +149,7 @@
 </header>
 
 <main>
+  <h2 id="dateHeading"></h2>
   <div class="summary" id="summary"></div>
   <table id="summaryTable"></table>
   <div id="setsContainer"></div>
@@ -166,6 +170,11 @@
   const summaryEl = document.getElementById('summary');
   const summaryTable = document.getElementById('summaryTable');
   const pdfExportContainer = document.getElementById('pdfExportContainer');
+  const dateHeading = document.getElementById('dateHeading');
+  const todayStrEl = document.getElementById('todayStr');
+
+  todayStrEl.textContent = humanDate(new Date());
+  dateHeading.textContent = `Summary for ${humanDate(new Date())}`;
 
   let state = loadDay() || defaultState();
   const intervals = new Map();
@@ -186,6 +195,10 @@
   function getTodayKey() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function humanDate(d) {
+    return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   function defaultState() { return { date: todayKey, sets: [newSet()] }; }
@@ -321,6 +334,11 @@
 
     // Clear and rebuild hidden container
     pdfExportContainer.innerHTML = '';
+
+    const dateH = document.createElement('h2');
+    dateH.textContent = `Summary for ${humanDate(new Date())}`;
+    pdfExportContainer.appendChild(dateH);
+
     const summaryClone = summaryEl.cloneNode(true);
     const tableClone = summaryTable.cloneNode(true);
 
