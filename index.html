@@ -10,8 +10,8 @@
     --fg: #111111;
     --muted: #666666;
     --border: #e7e7e7;
-    --accent: #8f4dcc;   /* Brandwell purple */
-    --accent-2: #2ec4b6; /* Teal */
+    --accent: #8f4dcc;
+    --accent-2: #2ec4b6;
     --radius: 12px;
     --shadow: 0 6px 24px rgba(0,0,0,0.06);
     --container: 900px;
@@ -20,42 +20,27 @@
   }
 
   * { box-sizing: border-box; }
-
   html, body {
     background: var(--bg);
     color: var(--fg);
     font-family: var(--sans);
-    line-height: 1.55;
     margin: 0;
+    line-height: 1.55;
   }
 
   header {
-    padding: 2rem 1.25rem 1rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border);
     background: #fafafa;
   }
 
-  h1 {
-    margin: 0 0 0.35rem;
-    font-size: clamp(1.6rem, 3.4vw, 2.2rem);
-  }
-
-  .date {
-    color: var(--muted);
-    font-size: 0.95rem;
-  }
+  h1 { margin: 0; font-size: clamp(1.6rem, 3.4vw, 2.2rem); }
+  .date { color: var(--muted); font-size: 0.95rem; }
 
   main {
     max-width: var(--container);
     margin: 0 auto;
-    padding: 2rem 1.25rem 6rem;
-  }
-
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .6rem;
-    margin: 1.2rem 0 2rem;
+    padding: 1rem 1.25rem 4rem;
   }
 
   button {
@@ -63,146 +48,63 @@
     border-radius: var(--radius);
     background: #fff;
     color: var(--fg);
-    padding: 0.65rem 1rem;
+    padding: 0.5rem 0.9rem;
     font-weight: 600;
     cursor: pointer;
     box-shadow: var(--shadow);
-    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    margin-right: 0.4rem;
   }
-  button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 28px rgba(0,0,0,.08);
-    border-color: var(--accent);
-  }
-
-  button.primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
-
-  button.outline-danger {
-    border-color: #ff4d4f33;
-    color: #ff4d4f;
-    background: #fff;
-  }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.outline-danger { border-color: #ff4d4f33; color: #ff4d4f; }
 
   .set {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    padding: 1rem 1rem 0.75rem;
+    padding: 1rem;
     margin-bottom: 1rem;
     background: #fff;
+    page-break-inside: avoid;
   }
 
-  .set-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: .75rem;
-    flex-wrap: wrap;
-    gap: .5rem;
-  }
-
-  .set-title {
-    font-weight: 600;
-  }
-
-  .set-time {
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-
-  .timer {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    margin: .4rem 0 .8rem;
-    flex-wrap: wrap;
-  }
-
-  .timer-display {
-    font-family: var(--mono);
-    font-size: 1.05rem;
-    font-weight: 600;
-    padding: .2rem .5rem;
-    border-radius: 6px;
-    background: #f5f5f5;
-    border: 1px solid var(--border);
-  }
-
-  .checks {
-    display: flex;
-    gap: 1rem;
-    margin: 0.5rem 0 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .checks label {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    cursor: pointer;
-  }
+  .set-header { display: flex; justify-content: space-between; margin-bottom: 0.75rem; }
+  .set-title { font-weight: 600; }
+  .set-time { font-size: 0.85rem; color: var(--muted); }
 
   textarea {
-    width: 100%;
-    min-height: 60px;
-    resize: vertical;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.6rem 0.75rem;
-    font-family: var(--sans);
-    font-size: 0.95rem;
-    margin-bottom: 0.8rem;
-  }
-  textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(143,77,204,0.12);
+    width: 100%; min-height: 60px; margin: 0.5rem 0;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.6rem 0.75rem; font-size: 0.95rem; font-family: var(--sans);
   }
 
+  .timer { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+  .timer-display { font-family: var(--mono); font-size: 1rem; font-weight: 600; }
+
+  .elapsed {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: -0.3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .checks { display: flex; gap: 1rem; margin: 0.5rem 0; }
+  .checks label { display: flex; align-items: center; gap: 0.3rem; }
+
+  .bottom-actions { margin: 1rem 0; }
+
   .summary {
-    margin: 1.8rem 0 2.2rem;
-    padding: 1rem;
+    margin: 1rem 0 1.5rem;
+    padding: 0.8rem;
     border-left: 4px solid var(--accent-2);
     background: #f7fffe;
     border-radius: 6px;
   }
 
-  .bottom-actions {
-    margin: 1.2rem 0;
-    display: flex;
-    gap: .6rem;
-  }
-
-  details.manifesto {
-    margin-top: 3rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    background: #fff;
-  }
-
-  details summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 1rem 1.2rem;
-    font-weight: 600;
-    border-bottom: 1px solid var(--border);
-  }
-
-  details[open] summary {
-    border-bottom: 1px solid var(--border);
-  }
-
-  details .content {
-    padding: 1.2rem 1.2rem 1.8rem;
-  }
-
-  .mono {
-    font-family: var(--mono);
+  @media print {
+    body { margin: 0; }
+    header, .bottom-actions, #resetBtn { display: none !important; }
+    main { padding: 0.5rem; }
+    .set { page-break-inside: avoid; margin-bottom: 0.8rem; }
   }
 </style>
 </head>
@@ -210,9 +112,7 @@
 <header>
   <h1>Work Athlete Dashboard</h1>
   <div class="date" id="todayStr"></div>
-  <div class="actions">
-    <button id="resetBtn" class="outline-danger">Reset Today</button>
-  </div>
+  <button id="resetBtn" class="outline-danger">Reset Today</button>
 </header>
 
 <main>
@@ -220,33 +120,12 @@
     <div class="summary" id="summary"></div>
     <div id="setsContainer"></div>
   </div>
-
-  <details class="manifesto" id="motivation">
-    <summary>Why this system works (Work Athlete Manifesto)</summary>
-    <div class="content">
-      <!-- Manifesto content -->
-      <h2>The Work Athlete Manifesto</h2>
-      <p><strong>Sets build strength. Systems build empires.</strong></p>
-      <ol>
-        <li><strong>Reps Create Results</strong> — Every 30-minute sprint is a rep for your future self.</li>
-        <li><strong>Sets Create Systems</strong> — One set moves the ball. Three sets make a session. Four sessions a day builds the machine.</li>
-        <li><strong>Momentum > Motivation</strong> — Start the clock, do the work. The set creates the energy, not the other way around.</li>
-        <li><strong>Time, Not Tasks</strong> — Tasks are unpredictable; 30-minute blocks are guaranteed progress.</li>
-        <li><strong>Recovery Is Growth</strong> — 5 minutes of movement post-set resets your nervous system and sharpens the next block.</li>
-        <li><strong>Fitness + Focus = One Loop</strong> — Work + Workout form a closed, self-reinforcing cycle.</li>
-        <li><strong>Structure = Freedom</strong> — 4 sessions = 12 sets = ~6 hours of elite output + 60 minutes of movement.</li>
-        <li><strong>Volume Is King</strong> — Consistency > intensity. Reps compound into legacy.</li>
-        <li><strong>Consistency Destroys Resistance</strong> — Even on bad days, one set keeps the system alive.</li>
-        <li><strong>You Are the Machine</strong> — Refine the loop, refine yourself.</li>
-      </ol>
-    </div>
-  </details>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 <script>
 (function () {
-  const MAX_DURATION = 30 * 60; // 30 minutes in seconds
+  const MAX_DURATION = 30 * 60; // 30 minutes
   const todayKey = getTodayKey();
   const storageKey = 'wa-' + todayKey;
 
@@ -276,9 +155,7 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  function defaultState() {
-    return { date: todayKey, sets: [newSet()] };
-  }
+  function defaultState() { return { date: todayKey, sets: [newSet()] }; }
 
   function newSet() {
     return {
@@ -299,9 +176,8 @@
       const parsed = JSON.parse(raw);
       if (parsed.date !== todayKey) return null;
       parsed.sets.forEach(s => {
-        if (!s.timer) s.timer = { elapsed: 0, running: false, startedAt: null };
         if (s.timer.running && s.timer.startedAt) {
-          const diff = Math.floor((Date.now() - new Date(s.timer.startedAt).getTime())/1000);
+          const diff = Math.floor((Date.now()-new Date(s.timer.startedAt))/1000);
           s.timer.elapsed = Math.min(MAX_DURATION, s.timer.elapsed + diff);
           s.timer.running = s.timer.elapsed < MAX_DURATION;
           s.timer.startedAt = s.timer.running ? new Date().toISOString() : null;
@@ -333,11 +209,11 @@
       <div class="set-time">${new Date(s.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>`;
     wrap.appendChild(header);
 
-    // Goal box
+    // Goal
     const goalBox = document.createElement('textarea');
     goalBox.placeholder = 'Set Goal / Intention';
-    goalBox.value = s.goal || '';
-    goalBox.addEventListener('input', () => { s.goal = goalBox.value; saveDay(); });
+    goalBox.value = s.goal;
+    goalBox.oninput = () => { s.goal = goalBox.value; saveDay(); };
     wrap.appendChild(goalBox);
 
     // Timer
@@ -347,123 +223,122 @@
     display.className = 'timer-display';
     display.textContent = formatTime(s.timer.elapsed);
 
+    const elapsedLine = document.createElement('div');
+    elapsedLine.className = 'elapsed';
+    elapsedLine.textContent = 'Elapsed Time: ' + formatTime(s.timer.elapsed);
+
     const startBtn = document.createElement('button');
     startBtn.textContent = s.timer.running ? 'Running…' : 'Start';
     startBtn.disabled = s.timer.running;
-    startBtn.addEventListener('click', () => startTimer(s, display, startBtn, pauseBtn));
+    startBtn.onclick = () => startTimer(s, display, elapsedLine, startBtn, pauseBtn);
 
     const pauseBtn = document.createElement('button');
     pauseBtn.textContent = 'Pause';
     pauseBtn.disabled = !s.timer.running;
-    pauseBtn.addEventListener('click', () => pauseTimer(s, display, startBtn, pauseBtn));
+    pauseBtn.onclick = () => pauseTimer(s, display, elapsedLine, startBtn, pauseBtn);
 
     const resetBtn = document.createElement('button');
     resetBtn.textContent = 'Reset Timer';
-    resetBtn.addEventListener('click', () => resetTimer(s, display, startBtn, pauseBtn));
+    resetBtn.onclick = () => resetTimer(s, display, elapsedLine, startBtn, pauseBtn);
 
     timerWrap.append(display, startBtn, pauseBtn, resetBtn);
-    wrap.appendChild(timerWrap);
+    wrap.append(timerWrap, elapsedLine);
 
     // Checks
     const checks = document.createElement('div');
     checks.className = 'checks';
-    const workLabel = document.createElement('label');
     const workCb = document.createElement('input');
     workCb.type = 'checkbox';
     workCb.checked = s.workDone;
     workCb.onchange = () => { s.workDone = workCb.checked; saveDay(); updateSummary(); };
-    workLabel.append(workCb, '30-min Work Complete');
-
-    const workoutLabel = document.createElement('label');
     const workoutCb = document.createElement('input');
     workoutCb.type = 'checkbox';
     workoutCb.checked = s.workoutDone;
     workoutCb.onchange = () => { s.workoutDone = workoutCb.checked; saveDay(); updateSummary(); };
-    workoutLabel.append(workoutCb, 'Movement / Workout Done');
-
-    checks.append(workLabel, workoutLabel);
+    const wLabel = document.createElement('label'); wLabel.append(workCb, '30-min Work Complete');
+    const woLabel = document.createElement('label'); woLabel.append(workoutCb, 'Movement / Workout Done');
+    checks.append(wLabel, woLabel);
     wrap.appendChild(checks);
 
     // Notes
     const notes = document.createElement('textarea');
     notes.placeholder = 'Notes / What I Did';
-    notes.value = s.notes || '';
-    notes.addEventListener('input', () => { s.notes = notes.value; saveDay(); });
+    notes.value = s.notes;
+    notes.oninput = () => { s.notes = notes.value; saveDay(); };
     wrap.appendChild(notes);
 
-    // If running, re-enable timer
-    if (s.timer.running) startInterval(s, display, startBtn, pauseBtn);
+    if (s.timer.running) startInterval(s, display, elapsedLine, startBtn, pauseBtn);
 
     return wrap;
   }
 
   function renderBottomActions() {
-    const bottomActions = document.createElement('div');
-    bottomActions.className = 'bottom-actions';
-
+    const bottom = document.createElement('div');
+    bottom.className = 'bottom-actions';
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
     addBtn.textContent = '+ Add Set';
     addBtn.onclick = () => { state.sets.push(newSet()); saveDay(); renderAll(); updateSummary(); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); };
-
     const exportBtn = document.createElement('button');
     exportBtn.textContent = 'Export Day (PDF)';
     exportBtn.onclick = () => {
-      const opt = { margin: 0.4, filename: `WA-${todayKey}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+      const opt = { margin: 0.3, filename: `WA-${todayKey}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
       html2pdf().from(exportArea).set(opt).save();
     };
-
-    bottomActions.append(addBtn, exportBtn);
-    setsContainer.appendChild(bottomActions);
+    bottom.append(addBtn, exportBtn);
+    setsContainer.appendChild(bottom);
   }
 
   // --- Timer logic (count up) ---
-  function startTimer(s, display, startBtn, pauseBtn) {
+  function startTimer(s, display, elapsedLine, startBtn, pauseBtn) {
     s.timer.running = true;
     s.timer.startedAt = new Date().toISOString();
     startBtn.disabled = true;
     startBtn.textContent = 'Running…';
     pauseBtn.disabled = false;
-    startInterval(s, display, startBtn, pauseBtn);
+    startInterval(s, display, elapsedLine, startBtn, pauseBtn);
     saveDay();
   }
 
-  function pauseTimer(s, display, startBtn, pauseBtn) {
+  function pauseTimer(s, display, elapsedLine, startBtn, pauseBtn) {
     if (!s.timer.running) return;
-    s.timer.running = false;
-    const diff = Math.floor((Date.now() - new Date(s.timer.startedAt).getTime())/1000);
+    const diff = Math.floor((Date.now() - new Date(s.timer.startedAt))/1000);
     s.timer.elapsed = Math.min(MAX_DURATION, s.timer.elapsed + diff);
+    s.timer.running = false;
     s.timer.startedAt = null;
     stopInterval(s.id);
     display.textContent = formatTime(s.timer.elapsed);
+    elapsedLine.textContent = 'Elapsed Time: ' + formatTime(s.timer.elapsed);
     startBtn.disabled = false;
     startBtn.textContent = 'Resume';
     pauseBtn.disabled = true;
     saveDay();
   }
 
-  function resetTimer(s, display, startBtn, pauseBtn) {
+  function resetTimer(s, display, elapsedLine, startBtn, pauseBtn) {
     s.timer.running = false;
     s.timer.elapsed = 0;
     s.timer.startedAt = null;
     stopInterval(s.id);
     display.textContent = '00:00';
+    elapsedLine.textContent = 'Elapsed Time: 00:00';
     startBtn.disabled = false;
     startBtn.textContent = 'Start';
     pauseBtn.disabled = true;
     saveDay();
   }
 
-  function startInterval(s, display, startBtn, pauseBtn) {
+  function startInterval(s, display, elapsedLine, startBtn, pauseBtn) {
     stopInterval(s.id);
     const id = setInterval(() => {
-      const diff = Math.floor((Date.now() - new Date(s.timer.startedAt).getTime())/1000);
-      const newElapsed = s.timer.elapsed + diff;
-      if (newElapsed >= MAX_DURATION) {
+      const diff = Math.floor((Date.now() - new Date(s.timer.startedAt))/1000);
+      const total = Math.min(MAX_DURATION, s.timer.elapsed + diff);
+      if (total >= MAX_DURATION) {
         s.timer.elapsed = MAX_DURATION;
         s.timer.running = false;
         s.timer.startedAt = null;
-        display.textContent = formatTime(s.timer.elapsed);
+        display.textContent = '30:00';
+        elapsedLine.textContent = 'Elapsed Time: 30:00';
         stopInterval(s.id);
         startBtn.disabled = false;
         startBtn.textContent = 'Restart';
@@ -471,39 +346,30 @@
         saveDay();
         return;
       }
-      display.textContent = formatTime(newElapsed);
+      display.textContent = formatTime(total);
+      elapsedLine.textContent = 'Elapsed Time: ' + formatTime(total);
     }, 1000);
     intervals.set(s.id, id);
   }
 
-  function stopInterval(id) {
-    if (intervals.has(id)) {
-      clearInterval(intervals.get(id));
-      intervals.delete(id);
-    }
-  }
+  function stopInterval(id) { if (intervals.has(id)) { clearInterval(intervals.get(id)); intervals.delete(id); } }
+  function clearAllIntervals() { intervals.forEach(clearInterval); intervals.clear(); }
 
-  function clearAllIntervals() {
-    intervals.forEach(clearInterval);
-    intervals.clear();
-  }
-
-  // --- Helpers ---
   function formatTime(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   }
 
   function updateSummary() {
     const total = state.sets.length;
-    const workDone = state.sets.filter(s => s.workDone).length;
-    const workoutDone = state.sets.filter(s => s.workoutDone).length;
+    const workDone = state.sets.filter(s=>s.workDone).length;
+    const workoutDone = state.sets.filter(s=>s.workoutDone).length;
     summaryEl.innerHTML = `
       <strong>Today’s Tally</strong><br/>
-      Sets logged: <strong>${total}</strong><br/>
-      Work sets completed: <strong>${workDone}</strong><br/>
-      Movement sets completed: <strong>${workoutDone}</strong>
+      Sets: <strong>${total}</strong><br/>
+      Work sets: <strong>${workDone}</strong><br/>
+      Movement: <strong>${workoutDone}</strong>
     `;
   }
 })();
