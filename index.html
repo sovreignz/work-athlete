@@ -104,6 +104,8 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: .75rem;
+    flex-wrap: wrap;
+    gap: .5rem;
   }
 
   .set-title {
@@ -115,10 +117,29 @@
     color: var(--muted);
   }
 
+  .timer {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: .4rem 0 .8rem;
+    flex-wrap: wrap;
+  }
+
+  .timer-display {
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: .2rem .5rem;
+    border-radius: 6px;
+    background: #f5f5f5;
+    border: 1px solid var(--border);
+  }
+
   .checks {
     display: flex;
     gap: 1rem;
     margin: 0.5rem 0 0.75rem;
+    flex-wrap: wrap;
   }
 
   .checks label {
@@ -180,7 +201,7 @@
     font-family: var(--mono);
   }
 
-  /* Print styles for PDF export */
+  /* Print styles only affect window.print() flows – not used now, but keeping tidy */
   @media print {
     header, .actions, details.manifesto summary, #motivation-toggle {
       display: none !important;
@@ -217,11 +238,11 @@
     <button id="resetBtn" class="outline-danger">Reset Today</button>
   </div>
 
-  <div class="summary" id="summary">
-    <!-- Populated by JS -->
+  <!-- Everything we want in the PDF lives inside exportArea -->
+  <div id="exportArea">
+    <div class="summary" id="summary"></div>
+    <div id="setsContainer"></div>
   </div>
-
-  <div id="setsContainer"></div>
 
   <details class="manifesto" id="motivation">
     <summary>Why this system works (Work Athlete Manifesto)</summary>
@@ -245,15 +266,20 @@
   </details>
 </main>
 
+<!-- html2pdf for client-side PDF download -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-YcsIPFd6Z4S1f1Z4YWgq5vDma2xEabLlLHce4u8dkWQMRs3Uhw2+o3HSuYk9t1KVk6iXW9eFh0bX2bMZr3K1fQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
 <script>
 /**
- * Work Athlete Dashboard MVP
+ * Work Athlete Dashboard MVP v2
  * - Per-day persistence: localStorage key = 'wa-YYYY-MM-DD'
- * - Fresh slate each new day
- * - Export via window.print()
+ * - Per-set 30:00 timers (with persistence)
+ * - Export to PDF (download) via html2pdf.js
  */
 
 (function () {
+  const DEFAULT_DURATION = 30 * 60; // 30 min in seconds
+
   const todayKey = getTodayKey();
   const storageKey = 'wa-' + todayKey;
 
@@ -263,6 +289,7 @@
   const resetBtn = document.getElementById('resetBtn');
   const todayStr = document.getElementById('todayStr');
   const summaryEl = document.getElementById('summary');
+  const exportArea = document.getElementById('exportArea');
 
   todayStr.textContent = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
@@ -272,6 +299,9 @@
   });
 
   let state = loadDay() || defaultState();
+
+  // Store active intervals to avoid duplicates
+  const intervals = new Map();
 
   renderAll();
   updateSummary();
@@ -286,13 +316,22 @@
   });
 
   exportBtn.addEventListener('click', () => {
-    window.print();
+    const filename = `WA-${todayKey}.pdf`;
+    const opt = {
+      margin: 0.4,
+      filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().from(exportArea).set(opt).save();
   });
 
   resetBtn.addEventListener('click', () => {
     const ok = confirm('Reset today? This will clear all sets logged for ' + todayKey + '.');
     if (!ok) return;
     state = defaultState();
+    clearAllIntervals();
     saveDay(true);
     renderAll();
     updateSummary();
@@ -320,7 +359,13 @@
       createdAt: new Date().toISOString(),
       workDone: false,
       workoutDone: false,
-      notes: ''
+      notes: '',
+      timer: {
+        duration: DEFAULT_DURATION,
+        remaining: DEFAULT_DURATION,
+        running: false,
+        startedAt: null
+      }
     };
   }
 
@@ -329,8 +374,23 @@
       const raw = localStorage.getItem(storageKey);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.date === todayKey && Array.isArray(parsed.sets)) return parsed;
-      return null;
+      if (!(parsed && parsed.date === todayKey && Array.isArray(parsed.sets))) return null;
+
+      // Recompute timers if they were running
+      const now = Date.now();
+      parsed.sets.forEach(s => {
+        if (!s.timer) {
+          s.timer = { duration: DEFAULT_DURATION, remaining: DEFAULT_DURATION, running: false, startedAt: null };
+        } else if (s.timer.running && s.timer.startedAt) {
+          const elapsed = Math.floor((now - new Date(s.timer.startedAt).getTime()) / 1000);
+          s.timer.remaining = Math.max(0, s.timer.remaining - elapsed);
+          s.timer.running = s.timer.remaining > 0; // stop if over
+          if (s.timer.remaining <= 0) s.timer.startedAt = null;
+          else s.timer.startedAt = new Date(now).toISOString(); // re-anchor to now
+        }
+      });
+
+      return parsed;
     } catch (e) {
       console.warn('Failed to load day', e);
       return null;
@@ -351,6 +411,8 @@
 
   function renderAll() {
     setsContainer.innerHTML = '';
+    clearAllIntervals();
+
     state.sets.forEach((s, idx) => {
       setsContainer.appendChild(renderSet(s, idx));
     });
@@ -374,6 +436,68 @@
 
     header.appendChild(title);
     header.appendChild(timestamp);
+
+    // timer
+    const timerWrap = document.createElement('div');
+    timerWrap.className = 'timer';
+
+    const display = document.createElement('span');
+    display.className = 'timer-display';
+    display.textContent = formatSeconds(s.timer.remaining);
+
+    const startBtn = document.createElement('button');
+    startBtn.textContent = s.timer.running ? 'Running…' : 'Start';
+    startBtn.disabled = s.timer.running;
+    startBtn.addEventListener('click', () => {
+      if (!s.timer.running && s.timer.remaining > 0) {
+        s.timer.running = true;
+        s.timer.startedAt = new Date().toISOString();
+        saveDay();
+        startTimerInterval(s, display, startBtn, pauseBtn, resetBtn);
+        startBtn.disabled = true;
+        startBtn.textContent = 'Running…';
+      }
+    });
+
+    const pauseBtn = document.createElement('button');
+    pauseBtn.textContent = 'Pause';
+    pauseBtn.disabled = !s.timer.running;
+    pauseBtn.addEventListener('click', () => {
+      if (s.timer.running) {
+        pauseTimer(s);
+        saveDay();
+        display.textContent = formatSeconds(s.timer.remaining);
+        startBtn.disabled = false;
+        startBtn.textContent = 'Resume';
+        pauseBtn.disabled = true;
+      }
+    });
+
+    const resetBtn = document.createElement('button');
+    resetBtn.textContent = 'Reset';
+    resetBtn.addEventListener('click', () => {
+      pauseTimer(s);
+      s.timer.remaining = s.timer.duration;
+      s.timer.startedAt = null;
+      saveDay();
+      display.textContent = formatSeconds(s.timer.remaining);
+      startBtn.disabled = false;
+      startBtn.textContent = 'Start';
+      pauseBtn.disabled = true;
+    });
+
+    timerWrap.appendChild(display);
+    timerWrap.appendChild(startBtn);
+    timerWrap.appendChild(pauseBtn);
+    timerWrap.appendChild(resetBtn);
+
+    // if timer was already running, restart interval
+    if (s.timer.running) {
+      startTimerInterval(s, display, startBtn, pauseBtn, resetBtn);
+      startBtn.disabled = true;
+      startBtn.textContent = 'Running…';
+      pauseBtn.disabled = false;
+    }
 
     // checks
     const checks = document.createElement('div');
@@ -416,6 +540,7 @@
     });
 
     wrap.appendChild(header);
+    wrap.appendChild(timerWrap);
     wrap.appendChild(checks);
     wrap.appendChild(notes);
 
@@ -430,14 +555,13 @@
     const hoursFocused = (workDone * 30) / 60;
     const minsFocused = workDone * 30;
 
-    const minsMoved = workoutDone * 5; // if you want to treat each “movement” as 5 min – change as needed
-    // Or if movement = ~5 min *per set*, tune logic above. You can also store a duration per set if you want.
+    const minsMoved = workoutDone * 5; // adjust if you want
 
     summaryEl.innerHTML = `
       <strong>Today’s Tally</strong><br/>
       Sets logged: <strong>${total}</strong><br/>
       Work sets completed: <strong>${workDone}</strong> (${minsFocused} mins / ${hoursFocused.toFixed(1)} hrs)<br/>
-      Movement sets completed: <strong>${workoutDone}</strong> (${workoutDone * 5} mins est.)<br/>
+      Movement sets completed: <strong>${workoutDone}</strong> (${minsMoved} mins est.)<br/>
       <span class="mono">${storageKey}</span>
     `;
   }
@@ -449,6 +573,73 @@
     } catch (e) {
       return '';
     }
+  }
+
+  function formatSeconds(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function startTimerInterval(s, display, startBtn, pauseBtn, resetBtn) {
+    // clear any existing
+    stopInterval(s.id);
+
+    pauseBtn.disabled = false;
+
+    const id = setInterval(() => {
+      const now = Date.now();
+      const started = new Date(s.timer.startedAt).getTime();
+      const elapsed = Math.floor((now - started) / 1000);
+
+      s.timer.remaining = Math.max(0, s.timer.duration - elapsed - (s.timer.duration - s.timer.remaining));
+      // the formula above accounts for a resumed timer (remaining already discounted)
+      // simpler: track "remaining" decreasing each tick instead of recomputing,
+      // but this keeps it robust to tab sleep. Let's just decrement directly:
+
+      // Actually, simpler:
+      s.timer.remaining = s.timer.remaining - 1;
+
+      if (s.timer.remaining <= 0) {
+        s.timer.remaining = 0;
+        s.timer.running = false;
+        s.timer.startedAt = null;
+        clearInterval(id);
+        intervals.delete(s.id);
+        startBtn.disabled = false;
+        startBtn.textContent = 'Restart';
+        pauseBtn.disabled = true;
+      }
+
+      display.textContent = formatSeconds(s.timer.remaining);
+      saveDay();
+    }, 1000);
+
+    intervals.set(s.id, id);
+  }
+
+  function pauseTimer(s) {
+    s.timer.running = false;
+    if (s.timer.startedAt) {
+      // compute remaining properly at pause time
+      // but since we're decrementing every second, we can just stop here.
+      s.timer.startedAt = null;
+    }
+    stopInterval(s.id);
+  }
+
+  function stopInterval(id) {
+    if (intervals.has(id)) {
+      clearInterval(intervals.get(id));
+      intervals.delete(id);
+    }
+  }
+
+  function clearAllIntervals() {
+    for (const [id, intId] of intervals) {
+      clearInterval(intId);
+    }
+    intervals.clear();
   }
 })();
 </script>
