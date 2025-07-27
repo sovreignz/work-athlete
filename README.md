@@ -1,5 +1,7 @@
 # Work Athlete Dashboard
 
+### Combine this with screen recording/ screen shot microservice and image analysis to have your computer auto summarize what you worked on and the progress you made per 30 min session.
+
 The **Work Athlete Dashboard** is a lightweight, static productivity tracker designed for rapid 30-minute work sprints (sets) combined with micro-workouts. It functions as a daily dashboard where each "set" includes:
 - A **goal/intention field** (set your focus for the sprint).
 - A **timer** that counts up from 00:00 to a max of 30:00.
