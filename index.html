@@ -72,9 +72,15 @@
   .set-time { font-size: 0.85rem; color: var(--muted); }
 
   textarea {
-    width: 100%; min-height: 60px; margin: 0.5rem 0;
-    border: 1px solid var(--border); border-radius: 8px;
-    padding: 0.6rem 0.75rem; font-size: 0.95rem; font-family: var(--sans);
+    width: 100%;
+    min-height: 60px;
+    margin: 0.5rem 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+    font-family: var(--sans);
+    resize: vertical;
   }
 
   .timer { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
@@ -100,6 +106,24 @@
     border-radius: 6px;
   }
 
+  /* Daily Summary Table */
+  #summaryTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+  }
+  #summaryTable th, #summaryTable td {
+    border: 1px solid var(--border);
+    padding: 0.5rem;
+    text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
+  }
+  #summaryTable th {
+    background: #f0f0f0;
+  }
+
   @media print {
     body { margin: 0; }
     header, .bottom-actions, #resetBtn { display: none !important; }
@@ -122,6 +146,7 @@
 <main>
   <div id="exportArea">
     <div class="summary" id="summary"></div>
+    <table id="summaryTable"></table>
     <div id="setsContainer"></div>
   </div>
 </main>
@@ -136,6 +161,7 @@
   const setsContainer = document.getElementById('setsContainer');
   const resetBtn = document.getElementById('resetBtn');
   const summaryEl = document.getElementById('summary');
+  const summaryTable = document.getElementById('summaryTable');
   const exportArea = document.getElementById('exportArea');
 
   let state = loadDay() || defaultState();
@@ -201,6 +227,7 @@
     clearAllIntervals();
     state.sets.forEach((s, i) => setsContainer.appendChild(renderSet(s, i)));
     renderBottomActions();
+    updateSummaryTable();
   }
 
   function renderSet(s, index) {
@@ -217,7 +244,7 @@
     const goalBox = document.createElement('textarea');
     goalBox.placeholder = 'Set Goal / Intention';
     goalBox.value = s.goal;
-    goalBox.oninput = () => { s.goal = goalBox.value; saveDay(); };
+    goalBox.oninput = () => { s.goal = goalBox.value; saveDay(); updateSummaryTable(); };
     wrap.appendChild(goalBox);
 
     // Timer
@@ -268,7 +295,7 @@
     const notes = document.createElement('textarea');
     notes.placeholder = 'Notes / What I Did';
     notes.value = s.notes;
-    notes.oninput = () => { s.notes = notes.value; saveDay(); };
+    notes.oninput = () => { s.notes = notes.value; saveDay(); updateSummaryTable(); };
     wrap.appendChild(notes);
 
     if (s.timer.running) startInterval(s, display, elapsedLine, startBtn, pauseBtn);
@@ -282,27 +309,46 @@
     const addBtn = document.createElement('button');
     addBtn.className = 'primary';
     addBtn.textContent = '+ Add Set';
-    addBtn.onclick = () => { state.sets.push(newSet()); saveDay(); renderAll(); updateSummary(); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); };
+    addBtn.onclick = () => { state.sets.push(newSet()); saveDay(); renderAll(); updateSummary(); };
     const exportBtn = document.createElement('button');
     exportBtn.textContent = 'Export Day (PDF)';
-    exportBtn.onclick = () => {
-      const opt = {
-        margin: [0, 0, 0, 0],
-        filename: `WA-${todayKey}.pdf`,
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: document.body.scrollWidth },
-        jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      };
-      const clone = exportArea.cloneNode(true);
-      clone.style.marginTop = '0';
-      clone.style.paddingTop = '0';
-      html2pdf().from(clone).set(opt).save();
-    };
+    exportBtn.onclick = exportToPDF;
     bottom.append(addBtn, exportBtn);
     setsContainer.appendChild(bottom);
   }
 
-  // --- Timer logic (count up) ---
+  function exportToPDF() {
+    updateSummaryTable();
+
+    // Clone and convert textareas to divs
+    const clone = exportArea.cloneNode(true);
+    clone.style.marginTop = '0';
+    clone.style.paddingTop = '0';
+
+    clone.querySelectorAll('textarea').forEach(t => {
+      const div = document.createElement('div');
+      div.style.whiteSpace = 'pre-wrap';
+      div.style.border = '1px solid #ccc';
+      div.style.padding = '0.6rem';
+      div.style.borderRadius = '8px';
+      div.style.fontSize = '0.95rem';
+      div.style.fontFamily = 'inherit';
+      div.textContent = t.value;
+      t.replaceWith(div);
+    });
+
+    const opt = {
+      margin: [0, 0, 0, 0],
+      filename: `WA-${todayKey}.pdf`,
+      html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: document.body.scrollWidth },
+      jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    html2pdf().from(clone).set(opt).save();
+  }
+
+  // Timer logic
   function startTimer(s, display, elapsedLine, startBtn, pauseBtn) {
     s.timer.running = true;
     s.timer.startedAt = new Date().toISOString();
@@ -310,7 +356,7 @@
     startBtn.textContent = 'Running…';
     pauseBtn.disabled = false;
     startInterval(s, display, elapsedLine, startBtn, pauseBtn);
-    saveDay();
+    saveDay(); updateSummaryTable();
   }
 
   function pauseTimer(s, display, elapsedLine, startBtn, pauseBtn) {
@@ -325,7 +371,7 @@
     startBtn.disabled = false;
     startBtn.textContent = 'Resume';
     pauseBtn.disabled = true;
-    saveDay();
+    saveDay(); updateSummaryTable();
   }
 
   function resetTimer(s, display, elapsedLine, startBtn, pauseBtn) {
@@ -338,7 +384,7 @@
     startBtn.disabled = false;
     startBtn.textContent = 'Start';
     pauseBtn.disabled = true;
-    saveDay();
+    saveDay(); updateSummaryTable();
   }
 
   function startInterval(s, display, elapsedLine, startBtn, pauseBtn) {
@@ -356,7 +402,7 @@
         startBtn.disabled = false;
         startBtn.textContent = 'Restart';
         pauseBtn.disabled = true;
-        saveDay();
+        saveDay(); updateSummaryTable();
         return;
       }
       display.textContent = formatTime(total);
@@ -384,6 +430,33 @@
       Work sets: <strong>${workDone}</strong><br/>
       Movement: <strong>${workoutDone}</strong>
     `;
+  }
+
+  function updateSummaryTable() {
+    let totalSeconds = 0;
+    let html = `
+      <tr>
+        <th>Set</th>
+        <th>Goal</th>
+        <th>Elapsed Time</th>
+        <th>Notes</th>
+      </tr>`;
+    state.sets.forEach((s, i) => {
+      totalSeconds += s.timer.elapsed;
+      html += `
+        <tr>
+          <td>${i+1}</td>
+          <td>${s.goal || ''}</td>
+          <td>${formatTime(s.timer.elapsed)}</td>
+          <td>${s.notes || ''}</td>
+        </tr>`;
+    });
+    html += `
+      <tr>
+        <td colspan="2"><strong>Total Time Spent</strong></td>
+        <td colspan="2"><strong>${formatTime(totalSeconds)}</strong></td>
+      </tr>`;
+    summaryTable.innerHTML = html;
   }
 })();
 </script>
