@@ -104,6 +104,10 @@
     body { margin: 0; }
     header, .bottom-actions, #resetBtn { display: none !important; }
     main { padding: 0.5rem; }
+    #exportArea {
+      margin-top: 0 !important;
+      padding-top: 0 !important;
+    }
     .set { page-break-inside: avoid; margin-bottom: 0.8rem; }
   }
 </style>
@@ -282,8 +286,17 @@
     const exportBtn = document.createElement('button');
     exportBtn.textContent = 'Export Day (PDF)';
     exportBtn.onclick = () => {
-      const opt = { margin: 0.3, filename: `WA-${todayKey}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
-      html2pdf().from(exportArea).set(opt).save();
+      const opt = {
+        margin: [0, 0, 0, 0],
+        filename: `WA-${todayKey}.pdf`,
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: document.body.scrollWidth },
+        jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+      const clone = exportArea.cloneNode(true);
+      clone.style.marginTop = '0';
+      clone.style.paddingTop = '0';
+      html2pdf().from(clone).set(opt).save();
     };
     bottom.append(addBtn, exportBtn);
     setsContainer.appendChild(bottom);
