@@ -303,17 +303,38 @@
   }
 
   function exportSummaryPDF() {
-    updateSummaryTable();
-    const element = summaryTable.cloneNode(true);
+      updateSummaryTable();
 
-    const opt = {
-      margin: 10,
-      filename: `WA-${todayKey}-Summary.pdf`,
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().from(element).set(opt).toPdf().get('pdf').then(pdf => {
+      // Create a wrapper containing the tally and table
+      const wrapper = document.createElement('div');
+      wrapper.style.width = '800px';
+      wrapper.style.padding = '20px';
+      wrapper.style.fontFamily = 'Arial, sans-serif';
+    
+      // Clone the tally and table
+      const summaryClone = summaryEl.cloneNode(true);
+      const tableClone = summaryTable.cloneNode(true);
+    
+      // Add minimal table styles
+      tableClone.style.width = '100%';
+      tableClone.style.borderCollapse = 'collapse';
+      tableClone.querySelectorAll('th, td').forEach(cell => {
+        cell.style.border = '1px solid #ccc';
+        cell.style.padding = '4px';
+      });
+    
+      wrapper.appendChild(summaryClone);
+      wrapper.appendChild(document.createElement('br'));
+      wrapper.appendChild(tableClone);
+    
+      const opt = {
+        margin: 10,
+        filename: `WA-${todayKey}-Summary.pdf`,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' }
+      };
+  
+    html2pdf().from(wrapper).set(opt).toPdf().get('pdf').then(pdf => {
       const pageCount = pdf.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         pdf.setPage(i);
